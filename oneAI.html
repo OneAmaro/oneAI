@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AI Form</title>
+  </head>
+  <body>
+    <form id="ai-form">
+      <label for="input-text">Input text:</label><br />
+      <textarea id="input-text" name="input-text"></textarea><br />
+      <label for="output-text">Output text:</label><br />
+      <textarea id="output-text" name="output-text"></textarea><br />
+      <input type="submit" value="Submit" />
+    </form>
+    <script>
+const wordToIndex = {};
+let predictions = [];
+
+function textToVector(text) {
+  const words = text.split(" ");
+  const uniqueWords = new Set(words);
+  let index = 0;
+  for (const word of uniqueWords) {
+    wordToIndex[word] = index;
+    index++;
+  }
+  const vector = new Array(uniqueWords.size).fill(0);
+  for (const word of words) {
+    vector[wordToIndex[word]] = 1;
+  }
+  return vector;
+}
+
+function trainAI(modelWeights, trainingData) {
+  if (modelWeights.length !== trainingData.length) return;
+  const learningRate = 0.1;
+  for (let i = 0; i < trainingData.length; i++) {
+    const example = trainingData[i];
+    const input = example.input;
+    const output = example.output;
+    for (let j = 0; j < modelWeights.length; j++) {
+      modelWeights[j] += learningRate * (output[j] - input[j]);
+    }
+  }
+  return modelWeights;
+}
+
+function useAI(modelWeights, inputData) {
+  for (let i = 0; i < modelWeights.length; i++) {
+    predictions.push(modelWeights[i] * inputData[i]);
+  }
+  const predictionIndices = [];
+  for (let i = 0; i < predictions.length; i++) {
+    if (predictions[i] > 0) predictionIndices.push(i);
+  }
+  const outputText = [];
+  for (const word in wordToIndex) {
+    if (predictionIndices.includes(wordToIndex[word])) outputText.push(word);
+  }
+  return outputText;
+}
+
+function saveData(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadData(key) {
+  return JSON.parse(localStorage.getItem(key));
+}
+
+let modelWeights = [0, 0, 0];
+trainAI(modelWeights, [
+  { input: textToVector("Hello"), output: textToVector("Hi") },
+  {
+    input: textToVector("How are you"),
+    output: textToVector("I'm doing well, thanks"),
+  },
+  {
+    input: textToVector("What is your name"),
+    output: textToVector("My name is AI"),
+  },
+  {
+    input: textToVector("Where are you from"),
+    output: textToVector("I'm from the internet"),
+  },
+]);
+saveData("modelWeights", modelWeights);
+modelWeights = loadData("modelWeights");
+const form = document.getElementById("ai-form");
+form.addEventListener("submit", function (event) {
+  event.preventDefault();
+  const inputText = document.getElementById("input-text").value;
+  const inputVector = textToVector(inputText);
+  const outputText = useAI(modelWeights, inputVector).join(" ");
+  document.getElementById("output-text").value = outputText;
+});
+
+
+    </script>
+  </body>
+</html>
